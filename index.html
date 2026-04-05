@@ -197,6 +197,20 @@
     .cert-input { padding: 12px; border-radius: 10px; border: 2px solid #CBD5E1; font-size: 18px; font-family: inherit; width: 80%; max-width: 300px; text-align: center;}
     .cert-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;}
     #cert-canvas { border: 4px solid var(--secondary); border-radius: 16px; max-width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-top: 20px;}
+    /* 13. PUZZLE DRAG & DROP */
+    .puzzle-area { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 10px; }
+    .puzzle-top { display: flex; gap: 25px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+    .puzzle-preview { width: 90px; height: 90px; background-size: cover; background-position: center; background-repeat: no-repeat; border: 3px solid var(--secondary); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .puzzle-board { display: grid; grid-template-columns: repeat(3, 120px); grid-template-rows: repeat(3, 120px); gap: 4px; background: #CBD5E1; border: 4px solid var(--secondary); border-radius: 16px; padding: 4px; box-shadow: 0 8px 20px rgba(59,130,246,0.15); }
+    .puzzle-slot { width: 120px; height: 120px; background: #E2E8F0; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; transition: background 0.2s; }
+    .puzzle-slot.puzzle-slot-over { background: #BFDBFE; outline: 3px dashed var(--secondary); }
+    .puzzle-tray { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; background: #F8FAFC; border: 3px dashed #CBD5E1; border-radius: 16px; padding: 15px; max-width: 500px; min-height: 110px; }
+    .puzzle-piece { width: 120px; height: 120px; border-radius: 8px; cursor: grab; border: 2px solid #94A3B8; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; background-repeat: no-repeat; flex-shrink: 0; }
+    .puzzle-piece:not(.puzzle-piece-correct):hover { transform: scale(1.06) translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 10; position: relative; }
+    .puzzle-piece-correct { border: 3px solid #10B981 !important; box-shadow: 0 0 0 4px rgba(16,185,129,0.25) !important; cursor: default !important; }
+    .puzzle-piece-wrong { animation: puzzle-shake 0.5s ease; border-color: #EF4444 !important; }
+    @keyframes puzzle-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-8px); } 80% { transform: translateX(8px); } }
+    .puzzle-complete-msg { display: none; text-align: center; background: linear-gradient(135deg, #D1FAE5, #A7F3D0); border: 3px solid #10B981; border-radius: 16px; padding: 20px 30px; font-size: 24px; font-weight: 800; color: #065F46; box-shadow: 0 8px 20px rgba(16,185,129,0.2); }
   </style>
 </head>
 <body>
@@ -231,6 +245,7 @@
           <button class="menu-btn" onclick="showSlide('ex-livetext')"><i data-lucide="volume-2"></i> 10. الكلمات التفاعلية</button>
           <button class="menu-btn" onclick="showSlide('ex-sentences')"><i data-lucide="book-open"></i> 11. الجمل التفاعلية</button>
           <button class="menu-btn" onclick="showSlide('ex-certificate')"><i data-lucide="award"></i> 12. الشهادة</button>
+          <button class="menu-btn" onclick="showSlide('ex-puzzle')"><i data-lucide="layout-grid"></i> 13. البازل</button>
         </div>
       </div>
       <div id="ex-match" class="slide">
@@ -491,6 +506,32 @@
           </button>
         </div>
       </div>
+      <div id="ex-puzzle" class="slide">
+        <div class="slide-header">
+          <h2>التمرين الثالث عشر: البازل</h2>
+          <div class="slide-tools">
+            <button class="action-btn secondary-btn" onclick="resetPuzzle()" style="padding: 8px 16px; font-size: 14px;"><i data-lucide="refresh-cw"></i> إعادة</button>
+            <button class="back-btn" onclick="showSlide('menu-slide')">العودة</button>
+          </div>
+        </div>
+        <div class="puzzle-area">
+          <div class="puzzle-top">
+            <div style="text-align: center;">
+              <div id="puzzle-preview" class="puzzle-preview"></div>
+              <div style="font-size: 12px; color: #64748B; margin-top: 8px; font-weight: bold;">الصورة الكاملة</div>
+            </div>
+            <div>
+              <div style="text-align: center; color: #64748B; font-weight: bold; margin-bottom: 8px; font-size: 14px;">اسحب القطع إلى مكانها الصحيح</div>
+              <div id="puzzle-board" class="puzzle-board"></div>
+            </div>
+          </div>
+          <div id="puzzle-complete-msg" class="puzzle-complete-msg">أحسنت يا بطل! اكتملت الصورة!</div>
+          <div style="width: 100%; max-width: 520px;">
+            <div style="text-align: center; color: #64748B; font-weight: bold; margin-bottom: 8px; font-size: 14px;">القطع المتاحة — اسحبها إلى اللوحة</div>
+            <div id="puzzle-tray" class="puzzle-tray"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <audio id="global-audio"></audio>
@@ -605,6 +646,7 @@
       if (slideId === 'ex-maze') initMaze();
       if (slideId === 'ex-quiz') initQuiz();
       if (slideId === 'ex-livetext') initLiveText();
+      if (slideId === 'ex-puzzle') initPuzzle();
       if (slideId === 'ex-sentences') {
         initSentences();
         const passagePlayer = document.getElementById('sentences-passage-player');
@@ -1542,6 +1584,108 @@
       link.download = 'شهادة_البطل.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
+    }
+
+    // --- 13. PUZZLE DRAG & DROP ---
+    const PUZZLE_COLS = 3;
+    const PUZZLE_ROWS = 3;
+    const PIECE_W = 120;
+    const PIECE_H = 120;
+    let puzzlePlaced = 0;
+
+    function initPuzzle() {
+      const board = document.getElementById('puzzle-board');
+      const tray = document.getElementById('puzzle-tray');
+      if (!board || !tray) return;
+      board.innerHTML = '';
+      tray.innerHTML = '';
+      puzzlePlaced = 0;
+      document.getElementById('puzzle-complete-msg').style.display = 'none';
+
+      const imgUrl = baseUrl + 'background.png';
+      const preview = document.getElementById('puzzle-preview');
+      if (preview) preview.style.backgroundImage = `url(${imgUrl})`;
+
+      const total = PUZZLE_COLS * PUZZLE_ROWS;
+
+      // Create drop slots on board
+      for (let i = 0; i < total; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'puzzle-slot';
+        slot.dataset.slotId = i;
+        slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('puzzle-slot-over'); });
+        slot.addEventListener('dragleave', () => slot.classList.remove('puzzle-slot-over'));
+        slot.addEventListener('drop', onPuzzleDrop);
+        board.appendChild(slot);
+      }
+
+      // Create shuffled pieces in tray
+      const ids = shuffleArray(Array.from({ length: total }, (_, i) => i));
+      ids.forEach(pieceId => {
+        const col = pieceId % PUZZLE_COLS;
+        const row = Math.floor(pieceId / PUZZLE_COLS);
+        const piece = document.createElement('div');
+        piece.className = 'puzzle-piece';
+        piece.draggable = true;
+        piece.dataset.pieceId = pieceId;
+        piece.style.backgroundImage = `url(${imgUrl})`;
+        piece.style.backgroundSize = `${PUZZLE_COLS * PIECE_W}px ${PUZZLE_ROWS * PIECE_H}px`;
+        piece.style.backgroundPosition = `-${col * PIECE_W}px -${row * PIECE_H}px`;
+        piece.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', pieceId.toString());
+          setTimeout(() => { piece.style.opacity = '0.4'; }, 0);
+        });
+        piece.addEventListener('dragend', () => { piece.style.opacity = '1'; });
+        tray.appendChild(piece);
+      });
+    }
+
+    function onPuzzleDrop(e) {
+      e.preventDefault();
+      const slot = e.currentTarget;
+      slot.classList.remove('puzzle-slot-over');
+
+      // Don't replace a correctly-placed piece
+      if (slot.querySelector('.puzzle-piece-correct')) return;
+
+      const pieceId = parseInt(e.dataTransfer.getData('text/plain'));
+      const slotId = parseInt(slot.dataset.slotId);
+      const piece = document.querySelector(`.puzzle-piece[data-piece-id="${pieceId}"]`);
+      if (!piece) return;
+
+      // If slot has a wrong piece, return it to tray
+      const existing = slot.querySelector('.puzzle-piece:not(.puzzle-piece-correct)');
+      if (existing) {
+        existing.classList.remove('puzzle-piece-wrong');
+        document.getElementById('puzzle-tray').appendChild(existing);
+      }
+
+      piece.style.opacity = '1';
+      slot.appendChild(piece);
+
+      if (pieceId === slotId) {
+        piece.classList.add('puzzle-piece-correct');
+        piece.draggable = false;
+        puzzlePlaced++;
+        playCorrectOnly();
+        if (puzzlePlaced === PUZZLE_COLS * PUZZLE_ROWS) {
+          setTimeout(() => {
+            document.getElementById('puzzle-complete-msg').style.display = 'block';
+          }, 300);
+        }
+      } else {
+        piece.classList.add('puzzle-piece-wrong');
+        playWrong();
+        setTimeout(() => {
+          piece.classList.remove('puzzle-piece-wrong');
+          piece.style.opacity = '1';
+          document.getElementById('puzzle-tray').appendChild(piece);
+        }, 700);
+      }
+    }
+
+    function resetPuzzle() {
+      initPuzzle();
     }
   </script>
 </body>
