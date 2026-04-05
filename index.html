@@ -1592,6 +1592,7 @@
     var PIECE_W = 120;
     var PIECE_H = 120;
     var puzzlePlaced = 0;
+    var puzzleDraggedPiece = null;
 
     function initPuzzle() {
       const board = document.getElementById('puzzle-board');
@@ -1600,6 +1601,7 @@
       board.innerHTML = '';
       tray.innerHTML = '';
       puzzlePlaced = 0;
+      puzzleDraggedPiece = null;
       document.getElementById('puzzle-complete-msg').style.display = 'none';
 
       const imgUrl = baseUrl + 'background.png';
@@ -1632,10 +1634,14 @@
         piece.style.backgroundSize = `${PUZZLE_COLS * PIECE_W}px ${PUZZLE_ROWS * PIECE_H}px`;
         piece.style.backgroundPosition = `-${col * PIECE_W}px -${row * PIECE_H}px`;
         piece.addEventListener('dragstart', e => {
+          puzzleDraggedPiece = piece;
           e.dataTransfer.setData('text/plain', pieceId.toString());
           setTimeout(() => { piece.style.opacity = '0.4'; }, 0);
         });
-        piece.addEventListener('dragend', () => { piece.style.opacity = '1'; });
+        piece.addEventListener('dragend', () => {
+          piece.style.opacity = '1';
+          puzzleDraggedPiece = null;
+        });
         tray.appendChild(piece);
       });
     }
@@ -1648,14 +1654,19 @@
       // Don't replace a correctly-placed piece
       if (slot.querySelector('.puzzle-piece-correct')) return;
 
-      const pieceId = parseInt(e.dataTransfer.getData('text/plain'));
-      const slotId = parseInt(slot.dataset.slotId);
-      const piece = document.querySelector(`.puzzle-piece[data-piece-id="${pieceId}"]`);
+      // Use the tracked reference first, fall back to dataTransfer
+      const piece = puzzleDraggedPiece || (function() {
+        const id = parseInt(e.dataTransfer.getData('text/plain'));
+        return isNaN(id) ? null : document.querySelector(`.puzzle-piece[data-piece-id="${id}"]`);
+      })();
       if (!piece) return;
 
-      // If slot has a wrong piece, return it to tray
+      const pieceId = parseInt(piece.dataset.pieceId);
+      const slotId = parseInt(slot.dataset.slotId);
+
+      // If slot has a pending-wrong piece, return it to tray
       const existing = slot.querySelector('.puzzle-piece:not(.puzzle-piece-correct)');
-      if (existing) {
+      if (existing && existing !== piece) {
         existing.classList.remove('puzzle-piece-wrong');
         document.getElementById('puzzle-tray').appendChild(existing);
       }
